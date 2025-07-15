@@ -9,8 +9,7 @@ from telegram.ext import (
 )
 
 # 🔧 Import handler modular
-from handlers.start_handler import start
-from handlers.afk_handler import afk_command, afk_checker
+from handlers import start, afk_command, afk_checker
 
 # 🔐 Load token dari .env
 load_dotenv()
@@ -21,12 +20,19 @@ async def error_handler(update, context):
     print(f"[ERROR] {context.error}")
 
 # 🚀 Entry point bot AFK
-def main():
+async def setup_bot():
     if not BOT_TOKEN:
         print("❌ BOT_TOKEN tidak ditemukan. Pastikan sudah diatur di .env")
         return
 
     app = Application.builder().token(BOT_TOKEN).build()
+
+    # 🔍 Ambil info bot (username, dll)
+    bot_info = await app.bot.get_me()
+    bot_username = bot_info.username
+
+    # 🧠 Inject username ke context untuk handler /start
+    app.bot_data["username"] = bot_username
 
     # 📌 Handler /start + tombol invite
     app.add_handler(CommandHandler("start", start))
@@ -40,8 +46,12 @@ def main():
     # 📌 Error handler
     app.add_error_handler(error_handler)
 
-    print("😴 AFK Bot aktif dan siap mantau grup...")
-    app.run_polling()
+    print(f"😴 AFK Bot aktif sebagai @{bot_username} dan siap mantau grup...")
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling()
+    await app.updater.idle()
 
 if __name__ == "__main__":
-    main()
+    import asyncio
+    asyncio.run(setup_bot())
