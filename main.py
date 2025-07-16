@@ -15,12 +15,12 @@ from handlers import start, afk_command, afk_checker
 load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# 🛠️ Error handler biar gak buang stacktrace
+# 🛠️ Error handler
 async def error_handler(update, context):
     print(f"[ERROR] {context.error}")
 
 # 🚀 Entry point bot AFK
-async def setup_bot():
+def main():
     if not BOT_TOKEN:
         print("❌ BOT_TOKEN tidak ditemukan. Pastikan sudah diatur di .env")
         return
@@ -28,11 +28,11 @@ async def setup_bot():
     app = Application.builder().token(BOT_TOKEN).build()
 
     # 🔍 Ambil info bot (username, dll)
-    bot_info = await app.bot.get_me()
-    bot_username = bot_info.username
-
-    # 🧠 Inject username ke context untuk handler /start
-    app.bot_data["username"] = bot_username
+    async def setup():
+        bot_info = await app.bot.get_me()
+        bot_username = bot_info.username
+        app.bot_data["username"] = bot_username
+        print(f"✅ Bot aktif sebagai @{bot_username}")
 
     # 📌 Handler /start + tombol invite
     app.add_handler(CommandHandler("start", start))
@@ -46,12 +46,11 @@ async def setup_bot():
     # 📌 Error handler
     app.add_error_handler(error_handler)
 
-    print(f"😴 AFK Bot aktif sebagai @{bot_username} dan siap mantau grup...")
-    await app.initialize()
-    await app.start()
-    await app.updater.start_polling()
-    await app.updater.idle()
+    # 🧠 Jalankan setup sebelum polling
+    app.post_init = setup
+
+    print("😴 AFK Bot siap mantau tongkrongan...")
+    app.run_polling()
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(setup_bot())
+    main()
